@@ -1,9 +1,7 @@
 module Language.Brainie.Parser.Parser where
   import Language.Brainie.CST.Located ( Located(..) )
-  import Language.Brainie.CST.Literal ( Literal(..) )
   import Language.Brainie.CST.Expression ( CST_Expression(..), CST_Statement(..) )
-  import Control.Applicative ( Alternative((<|>), some) )
-  import Control.Monad.State ( void, modify )
+  import Control.Applicative ( Alternative((<|>)) )
 
   import qualified Text.Parsec as P
   import qualified Language.Brainie.Parser.Lexer as L
@@ -11,9 +9,9 @@ module Language.Brainie.Parser.Parser where
   import qualified Text.Parsec.Token as Token
 
   import Language.Brainie.Parser.Modules.Operators
-    ( operators, operatorsTable )
+    ( operatorsTable )
   import Language.Brainie.Parser.Modules.Literal
-    ( literal, stringLiteral )
+    ( literal )
   
   parseBrainie :: String -> String -> Either P.ParseError [Located CST_Statement]
   parseBrainie file x = P.runParser (P.sepEndBy parser (P.optionMaybe L.semi) <* P.eof) () file x
@@ -60,3 +58,24 @@ module Language.Brainie.Parser.Parser where
   
   block :: Monad m => L.Parser m [Located CST_Statement]
   block = Token.braces L.lexer $ P.many cstStatement
+
+  -- Expression parsing
+
+  expression :: Monad m => L.Brainie m CST_Expression
+  expression = E.buildExpressionParser operatorsTable term
+
+  term :: Monad m => L.Brainie m CST_Expression
+  term = P.choice [
+      literal      P.<?> "literal",
+      variable     P.<?> "variable",
+      functionCall P.<?> "function call"
+    ]
+
+  variable :: Monad m => L.Brainie m CST_Expression
+  variable = L.locate $ CST_EVariable <$> L.identifier
+
+  functionCall :: Monad m => L.Brainie m CST_Expression
+  functionCall = L.locate $ do
+    name <- L.identifier
+    args <- L.parens . L.commaSep $ expression
+    return $ CST_EFunctionCall name args
