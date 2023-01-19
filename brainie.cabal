@@ -64,6 +64,11 @@ library
             Language.Brainie.CST.Expression
             Language.Brainie.CST.Located
             Language.Brainie.CST.Literal
+            
+            Language.Brainie.Parser.Lexer
+            Language.Brainie.Parser.Parser
+                Language.Brainie.Parser.Modules.Literal
+                Language.Brainie.Parser.Modules.Operators
 
     -- Modules included in this library but not exported.
     -- other-modules:
